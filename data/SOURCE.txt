@@ -1,0 +1,11 @@
+Telco-Customer-Churn.csv
+
+Unchanged copy of the IBM sample file:
+https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv
+
+Repository:
+https://github.com/IBM/telco-customer-churn-on-icp4d
+
+That repository is under the Apache License 2.0. The license covers the code
+pattern. The repository does not state a separate license for this CSV.
+SHA-256 is recorded in SHA256SUMS.
