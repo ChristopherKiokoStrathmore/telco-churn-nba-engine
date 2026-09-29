@@ -1,0 +1,236 @@
+{
+  "dataset": {
+    "name": "IBM Telco Customer Churn",
+    "source_url": "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv",
+    "repository": "https://github.com/IBM/telco-customer-churn-on-icp4d",
+    "repository_license": "Apache-2.0",
+    "data_license_note": "Apache-2.0 on the IBM repository covers that code pattern. The repository does not state a separate license for the CSV. This repo vendors the file unchanged.",
+    "sha256": "16320c9c1ec72448db59aa0a26a0b95401046bef5d02fd3aeb906448e3055e91",
+    "n_rows": 7043,
+    "n_columns": 21,
+    "blank_total_charges": 11,
+    "blank_total_charges_at_tenure_0": 11,
+    "churn_yes": 1869,
+    "churn_rate": 0.265370,
+    "internet_customers": 5517,
+    "online_security_yes_among_internet": 2019,
+    "tech_support_yes_among_internet": 2044
+  },
+  "split": {
+    "seed": 42,
+    "test_size": 0.250000,
+    "stratify": "Churn",
+    "n_train": 5282,
+    "n_test": 1761,
+    "train_churn_rate": 0.265430,
+    "test_churn_rate": 0.265190
+  },
+  "top_decile_definition": "k = floor(n_test / 10); rows whose score ties cross that cut share it in proportion to the tie group, so a constant score has lift 1",
+  "model_params": {
+    "dummy_prior": {
+      "family": "dummy",
+      "params": {
+        "strategy": "prior",
+        "random_state": 42
+      }
+    },
+    "logistic_regression": {
+      "family": "logistic",
+      "params": {
+        "solver": "lbfgs",
+        "max_iter": 1000,
+        "random_state": 42
+      }
+    },
+    "gradient_boosting": {
+      "family": "gradient_boosting",
+      "params": {
+        "n_estimators": 100,
+        "learning_rate": 0.100000,
+        "max_depth": 3,
+        "subsample": 1.000000,
+        "random_state": 42
+      }
+    }
+  },
+  "scoring_model": "gradient_boosting",
+  "churn": {
+    "positive_label": "Yes",
+    "test_base_rate": 0.265190,
+    "roc_auc_rank_high_to_low": [
+      "logistic_regression",
+      "gradient_boosting",
+      "dummy_prior"
+    ],
+    "models": {
+      "dummy_prior": {
+        "roc_auc": 0.500000,
+        "pr_auc": 0.265190,
+        "top_decile_lift": 1.000000,
+        "top_decile_positive_rate": 0.265190,
+        "top_decile_k": 176,
+        "base_rate": 0.265190
+      },
+      "logistic_regression": {
+        "roc_auc": 0.846490,
+        "pr_auc": 0.638090,
+        "top_decile_lift": 2.785308,
+        "top_decile_positive_rate": 0.738636,
+        "top_decile_k": 176,
+        "base_rate": 0.265190,
+        "n_iter": 40
+      },
+      "gradient_boosting": {
+        "roc_auc": 0.846001,
+        "pr_auc": 0.656070,
+        "top_decile_lift": 2.806733,
+        "top_decile_positive_rate": 0.744318,
+        "top_decile_k": 176,
+        "base_rate": 0.265190
+      }
+    }
+  },
+  "uptake": {
+    "OnlineSecurity": {
+      "population": "InternetService != No, using the same customer split as the churn model",
+      "label": "current holding of OnlineSecurity (Yes=1). Not a campaign response. MonthlyCharges and TotalCharges are excluded.",
+      "excluded_features": [
+        "MonthlyCharges",
+        "OnlineSecurity",
+        "TotalCharges"
+      ],
+      "n_train": 4139,
+      "n_test": 1378,
+      "test_base_rate": 0.361393,
+      "models": {
+        "dummy_prior": {
+          "roc_auc": 0.500000,
+          "pr_auc": 0.361393,
+          "top_decile_lift": 1.000000,
+          "top_decile_positive_rate": 0.361393,
+          "top_decile_k": 137,
+          "base_rate": 0.361393
+        },
+        "logistic_regression": {
+          "roc_auc": 0.777698,
+          "pr_auc": 0.663449,
+          "top_decile_lift": 2.080351,
+          "top_decile_positive_rate": 0.751825,
+          "top_decile_k": 137,
+          "base_rate": 0.361393,
+          "n_iter": 13
+        },
+        "gradient_boosting": {
+          "roc_auc": 0.783194,
+          "pr_auc": 0.658733,
+          "top_decile_lift": 2.080351,
+          "top_decile_positive_rate": 0.751825,
+          "top_decile_k": 137,
+          "base_rate": 0.361393
+        }
+      }
+    },
+    "TechSupport": {
+      "population": "InternetService != No, using the same customer split as the churn model",
+      "label": "current holding of TechSupport (Yes=1). Not a campaign response. MonthlyCharges and TotalCharges are excluded.",
+      "excluded_features": [
+        "MonthlyCharges",
+        "TechSupport",
+        "TotalCharges"
+      ],
+      "n_train": 4139,
+      "n_test": 1378,
+      "test_base_rate": 0.355588,
+      "models": {
+        "dummy_prior": {
+          "roc_auc": 0.500000,
+          "pr_auc": 0.355588,
+          "top_decile_lift": 1.000000,
+          "top_decile_positive_rate": 0.355588,
+          "top_decile_k": 137,
+          "base_rate": 0.355588
+        },
+        "logistic_regression": {
+          "roc_auc": 0.788309,
+          "pr_auc": 0.677629,
+          "top_decile_lift": 2.340116,
+          "top_decile_positive_rate": 0.832117,
+          "top_decile_k": 137,
+          "base_rate": 0.355588,
+          "n_iter": 14
+        },
+        "gradient_boosting": {
+          "roc_auc": 0.790647,
+          "pr_auc": 0.681856,
+          "top_decile_lift": 2.381171,
+          "top_decile_positive_rate": 0.846715,
+          "top_decile_k": 137,
+          "base_rate": 0.355588
+        }
+      }
+    }
+  },
+  "clv": {
+    "definition": "MonthlyCharges multiplied by restricted mean remaining tenure from a Kaplan-Meier curve fit on the training split only. The integral stops at the last observed training tenure and is not extrapolated.",
+    "horizon_months": 72.000000,
+    "expected_remaining_months_at_tenure_0": 54.549242,
+    "train_clv_p50": 1717.619943,
+    "train_clv_p75": 3311.917019
+  },
+  "nba": {
+    "threshold_source": "churn_high and churn_medium are quantiles of 3-fold out-of-fold gradient-boosting probabilities on the training split. clv_high is the matching quantile of the training-split CLV proxy. min_offer_propensity is the fixed policy constant in config/nba_rules.yaml. Cutoffs are not chosen on the test set.",
+    "policy": {
+      "scoring_model": "gradient_boosting",
+      "churn_high_quantile": 0.750000,
+      "churn_medium_quantile": 0.500000,
+      "clv_high_quantile": 0.750000,
+      "min_offer_propensity": 0.400000,
+      "oof_folds": 3,
+      "quantile_method": "linear",
+      "offer_tie_break": "OnlineSecurity"
+    },
+    "thresholds": {
+      "churn_high": 0.442962,
+      "churn_medium": 0.165703,
+      "clv_high": 3311.917019,
+      "min_offer_propensity": 0.400000,
+      "offer_tie_break": "OnlineSecurity"
+    },
+    "test_active_customers": {
+      "action_counts": {
+        "save_call": 108,
+        "offer": 121,
+        "no_action": 1065,
+        "n": 1294
+      },
+      "offer_counts": {
+        "OnlineSecurity": 61,
+        "TechSupport": 60
+      }
+    },
+    "test_all_customers": {
+      "action_counts": {
+        "save_call": 308,
+        "offer": 192,
+        "no_action": 1261,
+        "n": 1761
+      },
+      "offer_counts": {
+        "OnlineSecurity": 104,
+        "TechSupport": 88
+      }
+    },
+    "active_definition": "Held-out customers whose historical Churn label is No. The label is not a model input."
+  },
+  "example_customer_id": "5343-SGUBI",
+  "example_customer_historical_churn": "No",
+  "versions": {
+    "telco_nba": "0.1.0",
+    "python": "3.12.3",
+    "pandas": "2.2.3",
+    "numpy": "2.1.3",
+    "scikit-learn": "1.5.2",
+    "lifelines": "0.30.0",
+    "fastapi": "0.115.6"
+  }
+}

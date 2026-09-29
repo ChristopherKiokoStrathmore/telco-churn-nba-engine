@@ -1,0 +1,186 @@
+{
+  "model_path": "artifacts/churn_model.joblib",
+  "bundle_path": "artifacts/scoring_bundle.joblib",
+  "load_function": "telco_nba.model_io.load_churn_model",
+  "predict": "predict_proba(frame)[:, 1] is P(Churn='Yes')",
+  "positive_label": "Yes",
+  "positive_class_index": 1,
+  "id_column_excluded": "customerID",
+  "target_excluded": "Churn",
+  "feature_order": [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "tenure",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "numeric_features": [
+    "tenure",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "categorical_features": [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod"
+  ],
+  "categories": {
+    "gender": [
+      "Female",
+      "Male"
+    ],
+    "SeniorCitizen": [
+      0,
+      1
+    ],
+    "Partner": [
+      "No",
+      "Yes"
+    ],
+    "Dependents": [
+      "No",
+      "Yes"
+    ],
+    "PhoneService": [
+      "No",
+      "Yes"
+    ],
+    "MultipleLines": [
+      "No",
+      "No phone service",
+      "Yes"
+    ],
+    "InternetService": [
+      "DSL",
+      "Fiber optic",
+      "No"
+    ],
+    "OnlineSecurity": [
+      "No",
+      "No internet service",
+      "Yes"
+    ],
+    "OnlineBackup": [
+      "No",
+      "No internet service",
+      "Yes"
+    ],
+    "DeviceProtection": [
+      "No",
+      "No internet service",
+      "Yes"
+    ],
+    "TechSupport": [
+      "No",
+      "No internet service",
+      "Yes"
+    ],
+    "StreamingTV": [
+      "No",
+      "No internet service",
+      "Yes"
+    ],
+    "StreamingMovies": [
+      "No",
+      "No internet service",
+      "Yes"
+    ],
+    "Contract": [
+      "Month-to-month",
+      "One year",
+      "Two year"
+    ],
+    "PaperlessBilling": [
+      "No",
+      "Yes"
+    ],
+    "PaymentMethod": [
+      "Bank transfer (automatic)",
+      "Credit card (automatic)",
+      "Electronic check",
+      "Mailed check"
+    ]
+  },
+  "top_reasons": 3,
+  "total_charges_missing": "Blank TotalCharges cells are parsed to NaN before the split. Median imputation is a step inside the sklearn Pipeline and is fit on the training rows only.",
+  "uptake_feature_order": {
+    "OnlineSecurity": [
+      "gender",
+      "SeniorCitizen",
+      "Partner",
+      "Dependents",
+      "tenure",
+      "PhoneService",
+      "MultipleLines",
+      "InternetService",
+      "OnlineBackup",
+      "DeviceProtection",
+      "TechSupport",
+      "StreamingTV",
+      "StreamingMovies",
+      "Contract",
+      "PaperlessBilling",
+      "PaymentMethod"
+    ],
+    "TechSupport": [
+      "gender",
+      "SeniorCitizen",
+      "Partner",
+      "Dependents",
+      "tenure",
+      "PhoneService",
+      "MultipleLines",
+      "InternetService",
+      "OnlineSecurity",
+      "OnlineBackup",
+      "DeviceProtection",
+      "StreamingTV",
+      "StreamingMovies",
+      "Contract",
+      "PaperlessBilling",
+      "PaymentMethod"
+    ]
+  },
+  "uptake_note": "Uptake models predict current holding of OnlineSecurity or TechSupport among customers with internet service. They are not campaign-response models. The target column is excluded. MonthlyCharges and TotalCharges are excluded because in this sample the bill is the price of the subscribed bundle, so those fields would reconstruct the holding.",
+  "split": {
+    "seed": 42,
+    "test_size": 0.25,
+    "stratify": "Churn"
+  },
+  "trained_with": {
+    "telco_nba": "0.1.0",
+    "python": "3.12.3",
+    "pandas": "2.2.3",
+    "numpy": "2.1.3",
+    "scikit-learn": "1.5.2",
+    "lifelines": "0.30.0",
+    "fastapi": "0.115.6"
+  }
+}
