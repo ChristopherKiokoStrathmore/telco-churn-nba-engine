@@ -1,12 +1,25 @@
 # Telco churn, propensity, and next-best-action
 
-A small scoring stack for a retention desk: who looks likely to leave, a crude value for who is worth a call, and a rule that turns those two numbers plus offer eligibility into a save call, an add-on offer, or no action. The service scores one customer at a time.
+Telcos lose revenue to churn. Which customers should a retention team contact, and with what offer?
 
-This is a public portfolio project for Chris Nguu. It uses the IBM telco sample only. It is not an employer system and it does not contain operator customer data.
+This repo builds a churn model, add-on propensity models, a CLV proxy, and a readable next-best-action rule table, served one customer at a time through a FastAPI `POST /score` endpoint in Docker. Part of an independent portfolio series on telecom customer analytics, built alongside my MSc in Data Science. Structured using CRISP-DM.
+
+## Key results
+
+Held-out test set, 1761 customers (seed 42, stratified 25% split):
+
+| Model | ROC-AUC | PR-AUC | Top-decile lift |
+| --- | ---: | ---: | ---: |
+| Dummy prior | 0.500000 | 0.265190 | 1.000000 |
+| Logistic regression | 0.846490 | 0.638090 | 2.785308 |
+| Gradient boosting (served) | 0.846001 | 0.656070 | 2.806733 |
+
+- The top 10% of customers by gradient boosting score churn at 2.8 times the base rate (lift 2.806733).
+- `POST /score` returns churn probability, top reasons, CLV proxy, add-on propensities and the next-best action. Runs in Docker, tested in CI.
 
 The numbers below are copied from `reports/metrics.json` and from `examples/score_response.json`, both written by `python -m telco_nba.train`.
 
-## Problem
+## Business Understanding
 
 Historical churn labels support a ranking model. They do not, by themselves, say whether a call or an add-on is the right next step. This repo keeps those pieces separate:
 
@@ -16,7 +29,7 @@ Historical churn labels support a ranking model. They do not, by themselves, say
 - a readable rule table, not an uplift model
 - `POST /score` for a one-customer decision
 
-## Data card
+## Data Understanding
 
 | Item | Value |
 | --- | --- |
@@ -37,7 +50,7 @@ Historical churn labels support a ranking model. They do not, by themselves, say
 
 `scripts/download_data.py` fetches the same URL and checks the SHA-256. The committed file already matches.
 
-## Pipeline
+## Data Preparation
 
 The split is drawn before any imputer, scaler, encoder, classifier, or Kaplan-Meier curve is fit. Preprocessing lives inside an sklearn `Pipeline`, so the test rows cannot change the learned medians or category sets. The seed is 42 and `test_size` is 0.250000, stratified on `Churn`. That yields 5282 training rows and 1761 test rows (train churn rate 0.265430, test churn rate 0.265190).
 
@@ -62,9 +75,37 @@ flowchart TD
   api --> out[Churn probability, path contributions, CLV proxy, next-best action]
 ```
 
-Gradient boosting, the fixed scoring model, uses `n_estimators` 100, `learning_rate` 0.100000, `max_depth` 3, and `subsample` 1.000000. Churn probability cutoffs are quantiles of 3-fold out-of-fold scores on the training split (`churn_high_quantile` 0.750000, `churn_medium_quantile` 0.500000). They are not chosen on the test set. The training environment recorded in the metrics file is Python 3.12.3, scikit-learn 1.5.2, and lifelines 0.30.0.
+## Modeling
 
-## Metrics against the baseline
+Three families are fit for churn and for each add-on: a dummy prior, logistic regression, and gradient boosting. Gradient boosting is the fixed scoring model. It uses `n_estimators` 100, `learning_rate` 0.100000, `max_depth` 3, and `subsample` 1.000000. Churn probability cutoffs are quantiles of 3-fold out-of-fold scores on the training split (`churn_high_quantile` 0.750000, `churn_medium_quantile` 0.500000). They are not chosen on the test set. The training environment recorded in the metrics file is Python 3.12.3, scikit-learn 1.5.2, and lifelines 0.30.0.
+
+### CLV proxy
+
+CLV here is `MonthlyCharges` times expected remaining tenure. Remaining tenure is the restricted mean of a Kaplan-Meier curve fit on the training split only, with churn as the event and tenure as the time. The integral stops at the last observed training tenure, 72.000000 months, and is not extrapolated. At tenure 0 the curve's expected remaining time is 54.549242 months. On the training rows the CLV proxy median is 1717.619943 and the 75th percentile is 3311.917019. There is no margin, discount rate, or causal save effect in this number.
+
+### Next-best-action rules
+
+The rules live in `config/nba_rules.yaml`. First match wins. Frozen cutoffs from the training run:
+
+| Cutoff | Value | Meaning |
+| --- | ---: | --- |
+| `churn_high` | 0.442962 | 0.750000 quantile of out-of-fold training churn probabilities |
+| `churn_medium` | 0.165703 | 0.500000 quantile of those same probabilities |
+| `clv_high` | 3311.917019 | 0.750000 quantile of the training CLV proxy |
+| `min_offer_propensity` | 0.400000 | Fixed policy constant, not an estimated uplift |
+
+| Priority | Rule id | When | Action |
+| --- | --- | --- | --- |
+| 1 | `save_call` | Churn probability >= 0.442962 and CLV >= 3311.917019 | Save call. No offer. |
+| 2 | `offer_high_risk` | Churn probability >= 0.442962, CLV below that bar, and at least one add-on is eligible | Offer the eligible add-on with the higher uptake propensity. A tie goes to OnlineSecurity. |
+| 3 | `offer_medium_risk` | Churn probability >= 0.165703 and an eligible add-on has propensity >= 0.400000 | Offer that add-on. If both qualify, take the higher propensity. |
+| 4 | `no_action` | Otherwise | No action. |
+
+Eligible means the customer has internet service and does not already hold that add-on. A customer with no internet service is not scored by the uptake models.
+
+On the 1294 held-out customers whose historical `Churn` label is No (the label is not a model input; it only defines who could still be contacted), the rules assign 108 save calls, 121 offers, and 1065 no-action outcomes. Of the offers, 61 are OnlineSecurity and 60 are TechSupport. Counts for every held-out customer, including those already labeled churned, are under `nba.test_all_customers` in the metrics file.
+
+## Evaluation
 
 Positive class is `Churn = Yes`. ROC-AUC, PR-AUC, and top-decile lift are all on the held-out test rows.
 
@@ -104,33 +145,7 @@ TechSupport test base rate 0.355588.
 
 Gradient boosting leads TechSupport on ROC-AUC, PR-AUC, and lift. Logistic regression also beats the dummy prior on all three. The API uses the gradient boosting uptake models, again because that family is the fixed scoring model.
 
-## CLV proxy
-
-CLV here is `MonthlyCharges` times expected remaining tenure. Remaining tenure is the restricted mean of a Kaplan-Meier curve fit on the training split only, with churn as the event and tenure as the time. The integral stops at the last observed training tenure, 72.000000 months, and is not extrapolated. At tenure 0 the curve's expected remaining time is 54.549242 months. On the training rows the CLV proxy median is 1717.619943 and the 75th percentile is 3311.917019. There is no margin, discount rate, or causal save effect in this number.
-
-## Next-best-action rules
-
-The rules live in `config/nba_rules.yaml`. First match wins. Frozen cutoffs from the training run:
-
-| Cutoff | Value | Meaning |
-| --- | ---: | --- |
-| `churn_high` | 0.442962 | 0.750000 quantile of out-of-fold training churn probabilities |
-| `churn_medium` | 0.165703 | 0.500000 quantile of those same probabilities |
-| `clv_high` | 3311.917019 | 0.750000 quantile of the training CLV proxy |
-| `min_offer_propensity` | 0.400000 | Fixed policy constant, not an estimated uplift |
-
-| Priority | Rule id | When | Action |
-| --- | --- | --- | --- |
-| 1 | `save_call` | Churn probability >= 0.442962 and CLV >= 3311.917019 | Save call. No offer. |
-| 2 | `offer_high_risk` | Churn probability >= 0.442962, CLV below that bar, and at least one add-on is eligible | Offer the eligible add-on with the higher uptake propensity. A tie goes to OnlineSecurity. |
-| 3 | `offer_medium_risk` | Churn probability >= 0.165703 and an eligible add-on has propensity >= 0.400000 | Offer that add-on. If both qualify, take the higher propensity. |
-| 4 | `no_action` | Otherwise | No action. |
-
-Eligible means the customer has internet service and does not already hold that add-on. A customer with no internet service is not scored by the uptake models.
-
-On the 1294 held-out customers whose historical `Churn` label is No (the label is not a model input; it only defines who could still be contacted), the rules assign 108 save calls, 121 offers, and 1065 no-action outcomes. Of the offers, 61 are OnlineSecurity and 60 are TechSupport. Counts for every held-out customer, including those already labeled churned, are under `nba.test_all_customers` in the metrics file.
-
-## Scoring API
+## Deployment
 
 `POST /score` takes one customer's features and returns the churn probability, the top path contributions, the CLV proxy, the add-on propensities, and the next-best action.
 
@@ -217,7 +232,7 @@ model, schema = load_churn_model()
 
 The pipeline includes the training-split preprocessor. Classes are `[0, 1]`.
 
-## Run
+### Run
 
 ```bash
 python -m venv .venv
@@ -238,9 +253,13 @@ docker run --rm -p 8000:8000 telco-churn-nba
 
 Tests cover the split and preprocessing, the metrics file against the saved models, the NBA rules, path contributions, and `POST /score`. GitHub Actions runs them from `.github/workflows/ci.yml`.
 
+## Data and scope
+
+Built on the public IBM Telco Customer Churn sample as an independent portfolio project.
+
 ## Limitations
 
-- The training table is IBM's US telco sample, 7043 rows. It is not Kenyan data, and it says nothing about Safaricom or any other operator's customers. A model card that treats these metrics as local performance would be wrong.
+- The training table is IBM's US telco sample, 7043 rows. It is not Kenyan data and says nothing about any operator's customers. A model card that treats these metrics as local performance would be wrong.
 - Uptake scores are probabilities of **current holding** among people who already have internet. They are not the probability that someone accepts an offer, and they are not an uplift. Bill amounts are left out because they would leak the holding through the price of the bundle. Other current products are still features, so the score is a lookalike of today's base, not a response model.
 - The CLV proxy is monthly price times a restricted mean remaining lifetime. It ignores margin, discounting, and whether a save call actually changes survival. Past 72.000000 months the proxy remaining life is 0, because the curve is not extrapolated.
 - The next-best-action table is a policy. It does not estimate the causal effect of a call or an offer. The probability cutoffs are training quantiles, and 0.400000 is a fixed constant from the YAML file.
