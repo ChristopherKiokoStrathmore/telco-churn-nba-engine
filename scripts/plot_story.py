@@ -366,7 +366,7 @@ def draw_problem(ax, fonts, x, y, w, h, facts, compact=False):
     text(
         ax,
         x + pad,
-        stat_y + (46 if compact else 72),
+        stat_y + (66 if compact else 100),
         f"of {commas(facts['n_rows'])} customers churned",
         fonts,
         "inter-600",
@@ -376,7 +376,7 @@ def draw_problem(ax, fonts, x, y, w, h, facts, compact=False):
     text(
         ax,
         x + pad,
-        stat_y + (66 if compact else 100),
+        stat_y + (96 if compact else 132),
         f"rate {facts['rate']:.6f} on the public IBM sample",
         fonts,
         "inter-400",
