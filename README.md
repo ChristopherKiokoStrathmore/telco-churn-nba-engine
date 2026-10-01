@@ -1,5 +1,7 @@
 # Telco churn, propensity, and next-best-action
 
+![Who to contact, and with what offer: customers leave, scores feed a rule table, and the holdout shows the next action](assets/hero.png)
+
 [![CI](https://github.com/ChristopherKiokoStrathmore/telco-churn-nba-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristopherKiokoStrathmore/telco-churn-nba-engine/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
@@ -7,6 +9,14 @@
 Telcos lose revenue to churn. Which customers should a retention team contact, and with what offer?
 
 This repo builds a churn model, add-on propensity models, a CLV proxy, and a readable next-best-action rule table, served one customer at a time through a FastAPI `POST /score` endpoint in Docker. Part of an independent portfolio series on telecom customer analytics, built alongside my MSc in Data Science. Structured using CRISP-DM.
+
+## Demo
+
+`POST /score` scores one customer and returns the next-best action. The clip posts the held-out example, then two other held-out customers, to a local server. The customer id is not part of the request.
+
+![POST /score returning no action, a save call, and an add-on offer](assets/demo.gif)
+
+`scripts/record_demo.py` starts the server and records the clip. The requests are `examples/score_request.json`, `examples/holdout_save_call.json`, and `examples/holdout_offer.json`.
 
 ## Key results
 
@@ -25,7 +35,7 @@ Held-out test set, 1761 customers (seed 42, stratified 25% split):
 - The top 10% of customers by gradient boosting score churn at 2.8 times the base rate (lift 2.806733).
 - `POST /score` returns churn probability, top reasons, CLV proxy, add-on propensities and the next-best action. Runs in Docker, tested in CI.
 
-`scripts/plot_curves.py` draws the curves from the committed scoring bundle and this same holdout.
+`scripts/plot_curves.py` draws the curves from the committed scoring bundle and this same holdout. `scripts/plot_story.py` draws the poster above, and the charts later in this file, from that same bundle and holdout. It does not fit a new model.
 
 ## Business Understanding
 
@@ -113,6 +123,10 @@ Eligible means the customer has internet service and does not already hold that 
 
 On the 1294 held-out customers whose historical `Churn` label is No (the label is not a model input; it only defines who could still be contacted), the rules assign 108 save calls, 121 offers, and 1065 no-action outcomes. Of the offers, 61 are OnlineSecurity and 60 are TechSupport. Counts for every held-out customer, including those already labeled churned, are under `nba.test_all_customers` in the metrics file.
 
+![Held-out next-best actions for customers whose historical Churn label is No](assets/holdout_actions.png)
+
+The bars are those same held-out counts: 108 save calls, 121 offers, and 1065 no-action outcomes.
+
 ## Evaluation
 
 Positive class is `Churn = Yes`. ROC-AUC, PR-AUC, and top-decile lift are all on the held-out test rows.
@@ -126,6 +140,10 @@ Top-decile lift uses the definition stored in the metrics file: k = floor(n_test
 | Gradient boosting | 0.846001 | 0.656070 | 2.806733 |
 
 On this split, logistic regression has the higher churn ROC-AUC. Gradient boosting has the higher PR-AUC and the higher top-decile lift. Both clear the dummy prior on all three metrics. `POST /score` still uses gradient boosting, because `config/nba_rules.yaml` fixes `scoring_model` before anyone looks at the test table. The rank is also stored as `churn.roc_auc_rank_high_to_low` in the metrics file: logistic regression, then gradient boosting, then the dummy prior.
+
+![Top-decile lift for the dummy prior, logistic regression, and gradient boosting on the held-out split](assets/churn_lift.png)
+
+Gradient boosting, the served model, has top-decile lift 2.806733. Logistic regression leads ROC-AUC on this split.
 
 ### Add-on holding, not campaign response
 
@@ -219,6 +237,10 @@ This customer's churn probability is 0.122990, which is below `churn_medium` 0.1
 ```
 
 `clv_proxy.value` is the six-decimal product of the displayed monthly charge and the displayed remaining months.
+
+![Path contributions for the example score. The churn probability sits below the medium cutoff, so the action is no_action](assets/example_reasons.png)
+
+Contract, StreamingMovies, and MonthlyCharges lower this customer's churn log-odds. The contributions are not SHAP values.
 
 ### Model artifact for the responsible-ai-pack repo
 
