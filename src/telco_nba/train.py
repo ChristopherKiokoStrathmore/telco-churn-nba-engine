@@ -55,10 +55,16 @@ from telco_nba.scoring import nba_summary, score_response_json
 from telco_nba.serialize import dumps_rounded
 
 
+def _python_release() -> str:
+    """Major.minor only. A patch upgrade must not rewrite committed JSON."""
+    major, minor, _patch = platform.python_version_tuple()
+    return f"{major}.{minor}"
+
+
 def _versions() -> dict[str, str]:
     return {
         "telco_nba": __version__,
-        "python": platform.python_version(),
+        "python": _python_release(),
         "pandas": pd.__version__,
         "numpy": np.__version__,
         "scikit-learn": sklearn.__version__,

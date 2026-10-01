@@ -9,3 +9,5 @@ PyYAML==6.0.2
 joblib==1.4.2
 pytest==8.3.4
 httpx==0.28.1
+# Held-out ROC and PR figure (scripts/plot_curves.py). Not imported by the API.
+matplotlib==3.9.2

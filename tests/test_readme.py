@@ -14,8 +14,24 @@ from telco_nba.paths import (
 )
 
 README_PATH = REPO_ROOT / "README.md"
+FIGURE_PATH = REPO_ROOT / "reports" / "figures" / "churn_roc_pr.png"
 # The demo server port is part of the run instructions, not a measured result.
 ALLOWED_EXTRA = {"8000"}
+# Six-decimal formatting of round values belongs in metric tables, not prose.
+PADDED_PROSE = (
+    "72.000000",
+    "0.750000",
+    "0.500000",
+    "0.250000",
+    "0.100000",
+    "1.000000",
+    "0.400000",
+)
+_MODEL_LABELS = {
+    "dummy_prior": "Dummy prior",
+    "logistic_regression": "Logistic regression",
+    "gradient_boosting": "Gradient boosting",
+}
 
 
 def _allowed_text() -> str:
@@ -31,6 +47,38 @@ def _allowed_text() -> str:
     return "\n".join(parts)
 
 
+def _metric_table_rows(readme: str) -> list[tuple[str, str, str, str]]:
+    rows: list[tuple[str, str, str, str]] = []
+    lines = readme.splitlines()
+    header = ["Model", "ROC-AUC", "PR-AUC", "Top-decile lift"]
+    index = 0
+    while index < len(lines):
+        cells = [cell.strip() for cell in lines[index].strip().strip("|").split("|")]
+        if cells[:4] != header:
+            index += 1
+            continue
+        index += 2
+        while index < len(lines) and lines[index].strip().startswith("|"):
+            body = [cell.strip() for cell in lines[index].strip().strip("|").split("|")]
+            rows.append((body[0], body[1], body[2], body[3]))
+            index += 1
+    return rows
+
+
+def _triple(block: dict) -> tuple[str, str, str]:
+    return (
+        f"{block['roc_auc']:.6f}",
+        f"{block['pr_auc']:.6f}",
+        f"{block['top_decile_lift']:.6f}",
+    )
+
+
+def _prose(readme: str) -> str:
+    without_code = re.sub(r"```.*?```", "", readme, flags=re.S)
+    kept = [line for line in without_code.splitlines() if not line.strip().startswith("|")]
+    return "\n".join(kept)
+
+
 def test_readme_contains_the_saved_score_response():
     body = EXAMPLE_RESPONSE_PATH.read_text().strip()
     assert body in README_PATH.read_text()
@@ -44,27 +92,68 @@ def test_readme_numbers_come_from_generated_files():
     assert missing == []
 
 
-def test_readme_quotes_every_headline_metric():
+def test_readme_metric_tables_match_metrics_json():
     metrics = json.loads(METRICS_PATH.read_text())
-    readme = README_PATH.read_text()
+    rows = _metric_table_rows(README_PATH.read_text())
+    assert rows, "README has no ROC-AUC metric tables"
+
+    def matches(block: dict) -> list[tuple[str, str, str, str]]:
+        expected = _triple(block)
+        return [row for row in rows if row[1:] == expected]
+
     for name, block in metrics["churn"]["models"].items():
-        for key in ("roc_auc", "pr_auc", "top_decile_lift"):
-            token = f"{block[key]:.6f}"
-            assert token in readme, (name, key, token)
+        found = matches(block)
+        assert len(found) >= 2, (name, _triple(block))
+        assert all(row[0].startswith(_MODEL_LABELS[name]) for row in found)
     for target, block in metrics["uptake"].items():
         for name, model_block in block["models"].items():
-            for key in ("roc_auc", "pr_auc", "top_decile_lift"):
-                token = f"{model_block[key]:.6f}"
-                assert token in readme, (target, name, key, token)
-    for token in (
-        metrics["nba"]["thresholds"]["churn_high"],
-        metrics["nba"]["thresholds"]["churn_medium"],
-        metrics["nba"]["thresholds"]["clv_high"],
-        metrics["nba"]["thresholds"]["min_offer_propensity"],
-    ):
-        assert f"{token:.6f}" in readme
+            found = matches(model_block)
+            assert len(found) >= 1, (target, name, _triple(model_block))
+            assert all(row[0].startswith(_MODEL_LABELS[name]) for row in found)
+
+
+def test_readme_cutoff_table_matches_thresholds():
+    metrics = json.loads(METRICS_PATH.read_text())
+    table_text = "\n".join(
+        line for line in README_PATH.read_text().splitlines() if line.strip().startswith("|")
+    )
+    thresholds = metrics["nba"]["thresholds"]
+    for key in ("churn_high", "churn_medium", "clv_high", "min_offer_propensity"):
+        token = f"{thresholds[key]:.6f}"
+        assert token in table_text, key
     counts = metrics["nba"]["test_active_customers"]["action_counts"]
+    readme = README_PATH.read_text()
     for key in ("save_call", "offer", "no_action", "n"):
         assert str(counts[key]) in readme
-    assert "responsible-ai-pack" in readme
+
+
+def test_readme_prose_does_not_force_padded_six_decimals():
+    prose = _prose(README_PATH.read_text())
+    present = [token for token in PADDED_PROSE if token in prose]
+    assert present == []
+
+
+def test_readme_source_sentence_sits_above_the_metric_table():
+    readme = README_PATH.read_text()
+    marker = "The numbers below are copied from"
+    assert marker in readme
+    assert readme.index(marker) < readme.index("| Model | ROC-AUC |")
+
+
+def test_readme_links_the_model_card_and_embeds_the_figure():
+    readme = README_PATH.read_text()
+    assert "https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack" in readme
+    assert "https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack/blob/main/MODEL_CARD.md" in readme
+    assert "will live in the responsible-ai-pack repo" not in readme
+    assert "reports/figures/churn_roc_pr.png" in readme
+    assert FIGURE_PATH.is_file()
+    assert FIGURE_PATH.read_bytes().startswith(b"\x89PNG")
     assert "not Kenyan" in readme or "not Kenyan operator" in readme
+    for name in (
+        "omnichannel-care-analytics",
+        "care-automation-roi",
+        "digital-care-roadmap",
+    ):
+        assert f"https://github.com/ChristopherKiokoStrathmore/{name}" in readme
+    run = readme.split("### Run", 1)[1].lstrip()
+    assert run.startswith("Requires Python 3.12")

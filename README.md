@@ -1,10 +1,18 @@
 # Telco churn, propensity, and next-best-action
 
+[![CI](https://github.com/ChristopherKiokoStrathmore/telco-churn-nba-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristopherKiokoStrathmore/telco-churn-nba-engine/actions/workflows/ci.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+
 Telcos lose revenue to churn. Which customers should a retention team contact, and with what offer?
 
 This repo builds a churn model, add-on propensity models, a CLV proxy, and a readable next-best-action rule table, served one customer at a time through a FastAPI `POST /score` endpoint in Docker. Part of an independent portfolio series on telecom customer analytics, built alongside my MSc in Data Science. Structured using CRISP-DM.
 
 ## Key results
+
+The numbers below are copied from `reports/metrics.json` and from `examples/score_response.json`, both written by `python -m telco_nba.train`.
+
+![Held-out ROC and precision-recall curves for the served gradient boosting churn model, with logistic regression and a dummy prior on the same split](reports/figures/churn_roc_pr.png)
 
 Held-out test set, 1761 customers (seed 42, stratified 25% split):
 
@@ -17,7 +25,7 @@ Held-out test set, 1761 customers (seed 42, stratified 25% split):
 - The top 10% of customers by gradient boosting score churn at 2.8 times the base rate (lift 2.806733).
 - `POST /score` returns churn probability, top reasons, CLV proxy, add-on propensities and the next-best action. Runs in Docker, tested in CI.
 
-The numbers below are copied from `reports/metrics.json` and from `examples/score_response.json`, both written by `python -m telco_nba.train`.
+`scripts/plot_curves.py` draws the curves from the committed scoring bundle and this same holdout.
 
 ## Business Understanding
 
@@ -52,7 +60,7 @@ Historical churn labels support a ranking model. They do not, by themselves, say
 
 ## Data Preparation
 
-The split is drawn before any imputer, scaler, encoder, classifier, or Kaplan-Meier curve is fit. Preprocessing lives inside an sklearn `Pipeline`, so the test rows cannot change the learned medians or category sets. The seed is 42 and `test_size` is 0.250000, stratified on `Churn`. That yields 5282 training rows and 1761 test rows (train churn rate 0.265430, test churn rate 0.265190).
+The split is drawn before any imputer, scaler, encoder, classifier, or Kaplan-Meier curve is fit. Preprocessing lives inside an sklearn `Pipeline`, so the test rows cannot change the learned medians or category sets. The seed is 42 and the test split is 25%, stratified on `Churn`. That yields 5282 training rows and 1761 test rows (train churn rate 0.265430, test churn rate 0.265190).
 
 Blank `TotalCharges` cells are parsed to missing values with a row-wise cast. Median imputation is a pipeline step fit on the training rows only.
 
@@ -77,11 +85,11 @@ flowchart TD
 
 ## Modeling
 
-Three families are fit for churn and for each add-on: a dummy prior, logistic regression, and gradient boosting. Gradient boosting is the fixed scoring model. It uses `n_estimators` 100, `learning_rate` 0.100000, `max_depth` 3, and `subsample` 1.000000. Churn probability cutoffs are quantiles of 3-fold out-of-fold scores on the training split (`churn_high_quantile` 0.750000, `churn_medium_quantile` 0.500000). They are not chosen on the test set. The training environment recorded in the metrics file is Python 3.12.3, scikit-learn 1.5.2, and lifelines 0.30.0.
+Three families are fit for churn and for each add-on: a dummy prior, logistic regression, and gradient boosting. Gradient boosting is the fixed scoring model. It uses `n_estimators` 100, `learning_rate` 0.1, `max_depth` 3, and `subsample` 1. Churn probability cutoffs are quantiles of 3-fold out-of-fold scores on the training split (`churn_high_quantile` 0.75, `churn_medium_quantile` 0.5). They are not chosen on the test set. The training environment recorded in the metrics file is Python 3.12, scikit-learn 1.5.2, and lifelines 0.30.0.
 
 ### CLV proxy
 
-CLV here is `MonthlyCharges` times expected remaining tenure. Remaining tenure is the restricted mean of a Kaplan-Meier curve fit on the training split only, with churn as the event and tenure as the time. The integral stops at the last observed training tenure, 72.000000 months, and is not extrapolated. At tenure 0 the curve's expected remaining time is 54.549242 months. On the training rows the CLV proxy median is 1717.619943 and the 75th percentile is 3311.917019. There is no margin, discount rate, or causal save effect in this number.
+CLV here is `MonthlyCharges` times expected remaining tenure. Remaining tenure is the restricted mean of a Kaplan-Meier curve fit on the training split only, with churn as the event and tenure as the time. The integral stops at the last observed training tenure, 72 months, and is not extrapolated. At tenure 0 the curve's expected remaining time is 54.549242 months. On the training rows the CLV proxy median is 1717.619943 and the 75th percentile is 3311.917019. There is no margin, discount rate, or causal save effect in this number.
 
 ### Next-best-action rules
 
@@ -89,9 +97,9 @@ The rules live in `config/nba_rules.yaml`. First match wins. Frozen cutoffs from
 
 | Cutoff | Value | Meaning |
 | --- | ---: | --- |
-| `churn_high` | 0.442962 | 0.750000 quantile of out-of-fold training churn probabilities |
-| `churn_medium` | 0.165703 | 0.500000 quantile of those same probabilities |
-| `clv_high` | 3311.917019 | 0.750000 quantile of the training CLV proxy |
+| `churn_high` | 0.442962 | 0.75 quantile of out-of-fold training churn probabilities |
+| `churn_medium` | 0.165703 | 0.5 quantile of those same probabilities |
+| `clv_high` | 3311.917019 | 0.75 quantile of the training CLV proxy |
 | `min_offer_propensity` | 0.400000 | Fixed policy constant, not an estimated uplift |
 
 | Priority | Rule id | When | Action |
@@ -109,7 +117,7 @@ On the 1294 held-out customers whose historical `Churn` label is No (the label i
 
 Positive class is `Churn = Yes`. ROC-AUC, PR-AUC, and top-decile lift are all on the held-out test rows.
 
-Top-decile lift uses the definition stored in the metrics file: k = floor(n_test / 10); rows whose score ties cross that cut share it in proportion to the tie group, so a constant score has lift 1. For churn, k is 176 and the test base rate is 0.265190. The dummy prior's PR-AUC equals that base rate, and its lift is 1.000000.
+Top-decile lift uses the definition stored in the metrics file: k = floor(n_test / 10); rows whose score ties cross that cut share it in proportion to the tie group, so a constant score has lift 1. For churn, k is 176 and the test base rate is 0.265190. The dummy prior's PR-AUC equals that base rate, and its lift is 1.
 
 | Model | ROC-AUC | PR-AUC | Top-decile lift |
 | --- | ---: | ---: | ---: |
@@ -149,7 +157,7 @@ Gradient boosting leads TechSupport on ROC-AUC, PR-AUC, and lift. Logistic regre
 
 `POST /score` takes one customer's features and returns the churn probability, the top path contributions, the CLV proxy, the add-on propensities, and the next-best action.
 
-Contributions are the gradient-boosting path decomposition: each tree's leaf equals its root plus the splits along the path, and those changes sum with the initial log-odds to `decision_function`. One-hot columns are added back under the original feature name. They are not SHAP values. SHAP belongs in the responsible-ai-pack repo.
+Contributions are the gradient-boosting path decomposition: each tree's leaf equals its root plus the splits along the path, and those changes sum with the initial log-odds to `decision_function`. One-hot columns are added back under the original feature name. They are not SHAP values. SHAP for this model is written up in [responsible-ai-pack](https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack).
 
 The request below is the first held-out test customer with a numeric `TotalCharges`: id `5343-SGUBI`, historical `Churn` No. The id and the label are not sent to the model. The body is `examples/score_request.json`.
 
@@ -159,7 +167,7 @@ curl -s -X POST http://localhost:8000/score \
   -d @examples/score_request.json
 ```
 
-This customer's churn probability is 0.122990, which is below `churn_medium` 0.165703, so the rule is `no_action` even though the OnlineSecurity lookalike probability is 0.618604, above the 0.400000 offer cutoff. The response from the API:
+This customer's churn probability is 0.122990, which is below `churn_medium` 0.165703, so the rule is `no_action` even though the OnlineSecurity lookalike probability is 0.618604, above the 0.4 offer cutoff. The response from the API:
 
 ```json
 {
@@ -214,7 +222,7 @@ This customer's churn probability is 0.122990, which is below `churn_medium` 0.1
 
 ### Model artifact for the responsible-ai-pack repo
 
-Governance write-ups are not in this repo. Model cards, SHAP, and fairness checks will live in the responsible-ai-pack repo. That repo should load this churn model, not retrain a second one.
+The model card, SHAP explanations, and fairness checks are in [responsible-ai-pack](https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack): [MODEL_CARD.md](https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack/blob/main/MODEL_CARD.md). That repo loads this churn model. It does not train a second one.
 
 | Piece | Location |
 | --- | --- |
@@ -233,6 +241,10 @@ model, schema = load_churn_model()
 The pipeline includes the training-split preprocessor. Classes are `[0, 1]`.
 
 ### Run
+
+Requires Python 3.12.
+
+`make install`, `make test`, `make train`, and `make serve` wrap the commands below.
 
 ```bash
 python -m venv .venv
@@ -261,10 +273,17 @@ Built on the public IBM Telco Customer Churn sample as an independent portfolio 
 
 - The training table is IBM's US telco sample, 7043 rows. It is not Kenyan data and says nothing about any operator's customers. A model card that treats these metrics as local performance would be wrong.
 - Uptake scores are probabilities of **current holding** among people who already have internet. They are not the probability that someone accepts an offer, and they are not an uplift. Bill amounts are left out because they would leak the holding through the price of the bundle. Other current products are still features, so the score is a lookalike of today's base, not a response model.
-- The CLV proxy is monthly price times a restricted mean remaining lifetime. It ignores margin, discounting, and whether a save call actually changes survival. Past 72.000000 months the proxy remaining life is 0, because the curve is not extrapolated.
-- The next-best-action table is a policy. It does not estimate the causal effect of a call or an offer. The probability cutoffs are training quantiles, and 0.400000 is a fixed constant from the YAML file.
-- There is one stratified holdout (`test_size` 0.250000, seed 42) and no hyperparameter search. Logistic regression beats gradient boosting on churn ROC-AUC on that split. The API does not switch models after seeing the test metrics.
+- The CLV proxy is monthly price times a restricted mean remaining lifetime. It ignores margin, discounting, and whether a save call actually changes survival. Past 72 months the proxy remaining life is 0, because the curve is not extrapolated.
+- The next-best-action table is a policy. It does not estimate the causal effect of a call or an offer. The probability cutoffs are training quantiles, and 0.4 is a fixed constant from the YAML file.
+- There is one stratified 25% holdout (seed 42) and no hyperparameter search. Logistic regression beats gradient boosting on churn ROC-AUC on that split. The API does not switch models after seeing the test metrics.
 - Local reasons are path contributions for this gradient boosting model, not SHAP, and not causes.
 - Action counts above are for held-out customers with historical `Churn` No. Sending a customer who has already left through `/score` still returns a score; the historical label is not an input.
 
-Governance documents for this model will live in the responsible-ai-pack repo.
+The model card for this churn model is [MODEL_CARD.md](https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack/blob/main/MODEL_CARD.md) in [responsible-ai-pack](https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack).
+
+## Related projects in this series
+
+- [responsible-ai-pack](https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack) - model card, SHAP explanations, and a fairness audit for this churn model. See [MODEL_CARD.md](https://github.com/ChristopherKiokoStrathmore/responsible-ai-pack/blob/main/MODEL_CARD.md).
+- [omnichannel-care-analytics](https://github.com/ChristopherKiokoStrathmore/omnichannel-care-analytics) - care journey KPIs on a labeled synthetic event log, plus the public Bitext telecom intent taxonomy.
+- [care-automation-roi](https://github.com/ChristopherKiokoStrathmore/care-automation-roi) - contact-centre automation cost, payback, and sensitivity on illustrative inputs.
+- [digital-care-roadmap](https://github.com/ChristopherKiokoStrathmore/digital-care-roadmap) - now, next, and later roadmap for this telecom customer analytics series.
