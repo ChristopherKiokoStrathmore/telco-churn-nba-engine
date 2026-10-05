@@ -18,6 +18,10 @@ This repo builds a churn model, add-on propensity models, a CLV proxy, and a rea
 
 `scripts/record_demo.py` starts the server and records the clip. The requests are `examples/score_request.json`, `examples/holdout_save_call.json`, and `examples/holdout_offer.json`.
 
+## Live demo
+
+A Next.js briefing in `web/` shows the committed holdout examples and the metrics in this file. It does not call a model server. On Vercel, set the project Root Directory to `web` (`web/vercel.json` is the app config). The public URL will be added here after deploy.
+
 ## Key results
 
 The numbers below are copied from `reports/metrics.json` and from `examples/score_response.json`, both written by `python -m telco_nba.train`.

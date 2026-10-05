@@ -1,0 +1,46 @@
+{
+  "churn_probability": 0.122990,
+  "scoring_model": "gradient_boosting",
+  "top_reasons": [
+    {
+      "feature": "Contract",
+      "contribution": -0.357808,
+      "direction": "decreases_churn_risk"
+    },
+    {
+      "feature": "StreamingMovies",
+      "contribution": -0.235742,
+      "direction": "decreases_churn_risk"
+    },
+    {
+      "feature": "MonthlyCharges",
+      "contribution": -0.169382,
+      "direction": "decreases_churn_risk"
+    }
+  ],
+  "next_best_action": {
+    "action": "no_action",
+    "offer": null,
+    "rule_id": "no_action",
+    "rationale": "Churn risk, CLV, and offer eligibility do not match a save call or an offer."
+  },
+  "addon_propensities": {
+    "OnlineSecurity": {
+      "eligible": true,
+      "probability": 0.618604,
+      "reason": null
+    },
+    "TechSupport": {
+      "eligible": true,
+      "probability": 0.478232,
+      "reason": null
+    }
+  },
+  "clv_proxy": {
+    "monthly_charges": 80.200000,
+    "expected_remaining_months": 18.845956,
+    "value": 1511.445671,
+    "horizon_months": 72.000000
+  },
+  "explanation_method": "Path contributions along the gradient-boosting trees. They sum with the model intercept to the churn log-odds for this customer. They are not SHAP values."
+}
