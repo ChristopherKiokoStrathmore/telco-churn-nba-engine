@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "node scripts/check-copies.mjs && next build",
     "start": "next start",
-    "check": "node scripts/check-copies.mjs"
+    "check": "node scripts/check-copies.mjs",
+    "check:scorer": "node --experimental-strip-types scripts/check-scorer.ts"
   },
   "dependencies": {
     "next": "^15.5.4",

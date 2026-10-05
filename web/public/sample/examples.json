@@ -1,0 +1,82 @@
+{
+  "customers": [
+    {
+      "source": "examples/score_request.json",
+      "customer_id": "5343-SGUBI",
+      "historical_churn": "No",
+      "features": {
+        "gender": "Female",
+        "SeniorCitizen": 0,
+        "Partner": "No",
+        "Dependents": "No",
+        "tenure": 52,
+        "PhoneService": "Yes",
+        "MultipleLines": "Yes",
+        "InternetService": "Fiber optic",
+        "OnlineSecurity": "No",
+        "OnlineBackup": "Yes",
+        "DeviceProtection": "No",
+        "TechSupport": "No",
+        "StreamingTV": "No",
+        "StreamingMovies": "No",
+        "Contract": "One year",
+        "PaperlessBilling": "Yes",
+        "PaymentMethod": "Mailed check",
+        "MonthlyCharges": 80.2,
+        "TotalCharges": 4297.6
+      }
+    },
+    {
+      "source": "examples/holdout_save_call.json",
+      "customer_id": "0258-NOKBL",
+      "historical_churn": "No",
+      "features": {
+        "gender": "Male",
+        "SeniorCitizen": 0,
+        "Partner": "No",
+        "Dependents": "No",
+        "tenure": 3,
+        "PhoneService": "Yes",
+        "MultipleLines": "No",
+        "InternetService": "Fiber optic",
+        "OnlineSecurity": "No",
+        "OnlineBackup": "Yes",
+        "DeviceProtection": "Yes",
+        "TechSupport": "No",
+        "StreamingTV": "No",
+        "StreamingMovies": "Yes",
+        "Contract": "Month-to-month",
+        "PaperlessBilling": "No",
+        "PaymentMethod": "Electronic check",
+        "MonthlyCharges": 90.4,
+        "TotalCharges": 268.45
+      }
+    },
+    {
+      "source": "examples/holdout_offer.json",
+      "customer_id": "0327-WFZSY",
+      "historical_churn": "No",
+      "features": {
+        "gender": "Male",
+        "SeniorCitizen": 0,
+        "Partner": "Yes",
+        "Dependents": "Yes",
+        "tenure": 39,
+        "PhoneService": "Yes",
+        "MultipleLines": "Yes",
+        "InternetService": "Fiber optic",
+        "OnlineSecurity": "No",
+        "OnlineBackup": "No",
+        "DeviceProtection": "Yes",
+        "TechSupport": "No",
+        "StreamingTV": "Yes",
+        "StreamingMovies": "Yes",
+        "Contract": "One year",
+        "PaperlessBilling": "No",
+        "PaymentMethod": "Electronic check",
+        "MonthlyCharges": 100.0,
+        "TotalCharges": 3835.55
+      }
+    }
+  ]
+}

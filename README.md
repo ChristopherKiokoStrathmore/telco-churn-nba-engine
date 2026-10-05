@@ -20,7 +20,23 @@ This repo builds a churn model, add-on propensity models, a CLV proxy, and a rea
 
 ## Live demo
 
-A Next.js briefing in `web/` shows the committed holdout examples and the metrics in this file. It does not call a model server. On Vercel, set the project Root Directory to `web` (`web/vercel.json` is the app config). The public URL will be added here after deploy.
+The interactive demo scores customers in the browser: [https://telco-churn-nba.vercel.app/demo](https://telco-churn-nba.vercel.app/demo).
+
+Load the three committed requests, score the held-out public sample, or upload a CSV with the same columns as `data/Telco-Customer-Churn.csv`. The page shows churn probability, path contributions, the CLV proxy, add-on propensities, the next-best action, and top-decile lift when every row has a historical `Churn` label. Uploaded rows stay in the browser. They are not posted to an API. The label is not a model input.
+
+The briefing stays at `/` and at `/briefing`. `/score` is the committed holdout desk. `/metrics` is the holdout notes.
+
+The model file is `web/public/model/scoring_model.json`, written by `PYTHONPATH=src python scripts/export_web_demo.py` from `artifacts/scoring_bundle.joblib`. It is the gradient boosting pipelines, the retention curve, and the rule table used by `POST /score`. `pytest` checks that export against the API. From the repo root, `node --experimental-strip-types web/scripts/check-scorer.ts` checks the browser scorer against the same holdout.
+
+On Vercel, set the project Root Directory to `web`. `web/vercel.json` is the app config. Vercel serves this Next.js site, including `/demo`. It does not run FastAPI or the sklearn joblib bundle. There is no hosted API key and no private customer extract. To serve `POST /score`, run `make serve` or the Docker command in the Run section, on a machine that has this repo.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Open http://localhost:3000/ for the briefing and http://localhost:3000/demo to score customers. `npm run build` checks the copied briefing files and builds the site.
 
 ## Key results
 
@@ -289,7 +305,7 @@ docker build -t telco-churn-nba .
 docker run --rm -p 8000:8000 telco-churn-nba
 ```
 
-Tests cover the split and preprocessing, the metrics file against the saved models, the NBA rules, path contributions, and `POST /score`. GitHub Actions runs them from `.github/workflows/ci.yml`.
+Tests cover the split and preprocessing, the metrics file against the saved models, the NBA rules, path contributions, `POST /score`, and the browser scoring export. GitHub Actions runs them from `.github/workflows/ci.yml`. The Next.js site in `web/` is the briefing and the live demo. See Live demo above for Vercel and for `npm run dev`.
 
 ## Data and scope
 

@@ -43,7 +43,12 @@ export default function HomePage() {
         caption="Held-out churn metrics. The served row is gradient boosting."
         rows={demo.churnModels}
       />
+      <p className="prose">
+        The live demo scores customers in the browser: the three committed requests, the held-out sample, or a
+        CSV you choose. This page and the score desk keep the written briefing.
+      </p>
       <div className="links">
+        <Link href="/demo">Open the live demo</Link>
         <Link href="/score">Open the score desk</Link>
         <Link href="/metrics">Read the holdout notes</Link>
       </div>
