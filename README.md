@@ -10,6 +10,8 @@ Telcos lose revenue to churn. Which customers should a retention team contact, a
 
 This repo builds a churn model, add-on propensity models, a CLV proxy, and a readable next-best-action rule table, served one customer at a time through a FastAPI `POST /score` endpoint in Docker. Part of an independent portfolio series on telecom customer analytics, built alongside my MSc in Data Science. Structured using CRISP-DM.
 
+The holdout briefing is live at [https://telco-churn-nba.vercel.app](https://telco-churn-nba.vercel.app).
+
 ## Demo
 
 `POST /score` scores one customer and returns the next-best action. The clip posts the held-out example, then two other held-out customers, to a local server. The customer id is not part of the request.
@@ -20,7 +22,7 @@ This repo builds a churn model, add-on propensity models, a CLV proxy, and a rea
 
 ## Live demo
 
-The interactive demo scores customers in the browser: [https://telco-churn-nba.vercel.app/demo](https://telco-churn-nba.vercel.app/demo).
+The interactive demo scores customers in the browser: [https://telco-churn-nba.vercel.app/demo](https://telco-churn-nba.vercel.app/demo). The holdout briefing linked above stays at [https://telco-churn-nba.vercel.app](https://telco-churn-nba.vercel.app).
 
 Load the three committed requests, score the held-out public sample, or upload a CSV with the same columns as `data/Telco-Customer-Churn.csv`. The page shows churn probability, path contributions, the CLV proxy, add-on propensities, the next-best action, and top-decile lift when every row has a historical `Churn` label. Uploaded rows stay in the browser. They are not posted to an API. The label is not a model input.
 
