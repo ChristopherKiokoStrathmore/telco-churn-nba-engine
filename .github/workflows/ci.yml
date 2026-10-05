@@ -16,3 +16,8 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run tests
         run: pytest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check browser scorer
+        run: node --experimental-strip-types web/scripts/check-scorer.ts

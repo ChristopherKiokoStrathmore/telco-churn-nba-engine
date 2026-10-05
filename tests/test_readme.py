@@ -16,7 +16,7 @@ from telco_nba.paths import (
 README_PATH = REPO_ROOT / "README.md"
 FIGURE_PATH = REPO_ROOT / "reports" / "figures" / "churn_roc_pr.png"
 # The demo server port is part of the run instructions, not a measured result.
-ALLOWED_EXTRA = {"8000"}
+ALLOWED_EXTRA = {"8000", "3000"}
 # Six-decimal formatting of round values belongs in metric tables, not prose.
 PADDED_PROSE = (
     "72.000000",
@@ -138,6 +138,15 @@ def test_readme_source_sentence_sits_above_the_metric_table():
     marker = "The numbers below are copied from"
     assert marker in readme
     assert readme.index(marker) < readme.index("| Model | ROC-AUC |")
+
+
+def test_readme_links_the_interactive_demo():
+    readme = README_PATH.read_text()
+    assert "https://telco-churn-nba.vercel.app/demo" in readme
+    assert "http://localhost:3000/demo" in readme
+    assert "Root Directory" in readme
+    assert "/briefing" in readme
+    assert "does not run FastAPI" in readme
 
 
 def test_readme_links_the_model_card_and_embeds_the_figure():

@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s · Telco churn NBA",
   },
   description:
-    "Holdout briefing for a churn model, a CLV proxy, and next-best-action rules on IBM's public telco sample. Scores shown here are committed examples, not a live model server.",
+    "Churn, a CLV proxy, and next-best-action rules on IBM's public telco sample. The demo scores customers in the browser. The briefing keeps the committed holdout.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -63,8 +63,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <main id="content">{children}</main>
           <footer className="footer">
             <p>
-              Seed {demo.split.seed} · held-out n = {demo.split.nTest} · figures from the committed metrics,
-              examples, and rule file.
+              Seed {demo.split.seed} · held-out n = {demo.split.nTest}. Briefing figures come from the committed
+              metrics. The demo scores in the browser.
             </p>
             <p>
               <a href={demo.githubUrl} target="_blank" rel="noopener noreferrer">
