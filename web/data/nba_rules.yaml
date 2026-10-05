@@ -1,0 +1,46 @@
+# Next-best-action policy. First matching rule wins.
+# Probability and CLV cutoffs are not in this file. Training freezes them from
+# the quantiles below, on the training split only, and writes the numbers to
+# reports/metrics.json and artifacts/scoring_bundle.joblib.
+#
+# min_offer_propensity is a fixed policy constant. It is not an uplift estimate.
+# Uptake scores are lookalike probabilities of current add-on holding.
+
+policy:
+  scoring_model: gradient_boosting
+  churn_high_quantile: 0.75
+  churn_medium_quantile: 0.50
+  clv_high_quantile: 0.75
+  min_offer_propensity: 0.40
+  oof_folds: 3
+  quantile_method: linear
+  offer_tie_break: OnlineSecurity
+
+rules:
+  - id: save_call
+    priority: 1
+    action: save_call
+    offer: null
+    when: "churn_probability >= churn_high AND clv >= clv_high"
+    rationale: "High churn risk and high CLV proxy: place a retention call."
+
+  - id: offer_high_risk
+    priority: 2
+    action: offer
+    offer: best_eligible
+    when: "churn_probability >= churn_high AND at least one add-on is eligible"
+    rationale: "High churn risk with CLV below the save-call bar: offer the eligible add-on with the higher uptake propensity."
+
+  - id: offer_medium_risk
+    priority: 3
+    action: offer
+    offer: best_eligible_above_cutoff
+    when: "churn_probability >= churn_medium AND an eligible add-on has propensity >= min_offer_propensity"
+    rationale: "Moderate churn risk and an eligible add-on whose lookalike propensity meets the policy cutoff."
+
+  - id: no_action
+    priority: 4
+    action: no_action
+    offer: null
+    when: "otherwise"
+    rationale: "Churn risk, CLV, and offer eligibility do not match a save call or an offer."
